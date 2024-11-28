@@ -1,4 +1,5 @@
 import time
+import tracemalloc
 
 class EHMIN:
     def __init__(self, database, min_util):
@@ -69,6 +70,7 @@ class EHMIN:
 
     def run(self):
         start_time = time.time()
+        tracemalloc.start()
         self.load_external_utility()
         self.first_scan()
         self.prune_low_utility_items()
@@ -77,34 +79,50 @@ class EHMIN:
         end_time = time.time()
         execution_time = end_time - start_time
         print(f'Time taken: {execution_time} seconds')
+        
+        tracemalloc.stop()
+        current, peak = tracemalloc.get_traced_memory()
+
+        tracemalloc.stop()
+        print(f"Current memory usage: {current / 1024:.2f} KB")
+        print(f"Peak memory usage: {peak / 1024:.2f} KB")
         return self.results
 
 
-database = [
-    {
-        "TID": "T1",
-        "items": ["a", "b", "d", "h"],
-        "quantities": [2, 3, 1, 1],
-        "profit": [2, 1, 3, -1],
-    },
-    {"TID": "T2", "items": ["a", "c", "e", "h"], "quantities": [2, 4, 2, 3], "profit": [2, 1, -1, -1]},
-    {
-        "TID": "T3",
-        "items": ["b", "c", "d", "e", "f"],
-        "quantities": [6, 3, 1, 3, 2],
-        "profit": [1, 1, 3, -1, 5],
-    },
-    {
-        "TID": "T4",
-        "items": ["a", "b", "c", "g"],
-        "quantities": [4, 3, 3, 2],
-        "profit": [2, 1, 1, -1],
-    },
-    {"TID": "T5", "items": ["b", "d", "e", "g" ,"h"], "quantities": [4, 4, 1, 2, 1], "profit": [1, 3, -1, -1, -1]},
-]
+def read_data(file_name="data.txt"):
+    """
+    Read and parse the dataset from the given file.
+
+    Parameters:
+    file_name (str): The name of the file containing the dataset. The default is "ehmintable.txt".
+
+    Returns:
+    list: A list of dictionaries representing the transactions. Each dictionary contains:
+        - 'TID': Transaction ID.
+        - 'items': List of item names in the transaction.
+        - 'profit': List of profit per item in the transaction.
+        - 'quantities': List of quantities of each item in the transaction.
+
+    Example:
+    >>> dataset = read_data()
+    >>> print(dataset)
+    [
+        {'TID': 'T1', 'items': ['apple', 'banana'], 'profit': [5, 3], 'quantities': [2, 3]},
+        {'TID': 'T2', 'items': ['apple', 'date'], 'profit': [8, 7], 'quantities': [1, 5]},
+        ...
+    ]
+    """
+    with open(file_name, "r") as file:
+        data = file.read()
+
+    dataset = eval(data)
+    return dataset
+
+# Dataset
+dataset = read_data()
 
 min_util = 14
-ehmin = EHMIN(database, min_util)
+ehmin = EHMIN(dataset, min_util)
 results = ehmin.run()
 for pattern, utility in results:
     print("_".join(pattern), "-", utility)
